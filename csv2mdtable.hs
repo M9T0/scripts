@@ -23,6 +23,7 @@ csv2mdtable s =
     let deli = concat (replicate columns "|----") ++ "|" in
     x:deli:xs
 
+-- ファイル読み込み処理
 readFile' :: String -> String -> IO String
 readFile' cp path = do
     h <- openFile path ReadMode
@@ -30,17 +31,9 @@ readFile' cp path = do
     hSetEncoding h enc
     hGetContents h
 
-writeFile' :: String -> String -> String -> IO ()
-writeFile' cp path content = do
-    h <- openFile path WriteMode
-    enc <- mkTextEncoding cp
-    hSetEncoding h enc
-    hPutStr h content
-    hFlush h
-    hClose h
-
+-- | CSVファイルからmarkdown形式のテーブルを出力する
 main :: IO ()
 main = do
-    [path, out] <- getArgs
+    [path] <- getArgs
     content <- readFile' "UTF-8" path
-    writeFile' "UTF-8" out (unlines (csv2mdtable $ lines content))
+    putStr $ unlines $ csv2mdtable $ lines content
