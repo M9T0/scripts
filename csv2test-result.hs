@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+import Data.List (foldl')
 import System.Environment
 import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding)
 import Text.Parsec
@@ -25,11 +26,11 @@ readResult "未実施" = Yet
 readResult _ = Yet
 
 -- | 行
-data Row = Row {
-    subject :: String,
-    result :: TestResult,
-    remark :: String
-}
+data Row = Row { subject :: String, result :: TestResult, remark :: String }
+-- | 行格納ノード
+data Node = Table { name :: String, rows :: [Row] } | Sheet { name :: String, nodes :: [Node] }
+
+-- | 行処理
 outputRow :: Row -> String
 outputRow row =
     "|" ++ s ++ "|" ++ r ++ "|"  ++ m ++ "|"
@@ -38,11 +39,9 @@ outputRow row =
         r = show $ result row
         m = remark row
 createRow :: [String] -> Row
---createRow xs = Row { subject = head xs, result = read (xs !! 1), remark = xs !! 2 }
 createRow xs = Row { subject = head xs, result = readResult (xs !! 1), remark = xs !! 2 }
 
--- | テーブル
-data Node = Table { name :: String, rows :: [Row] } | Sheet { name :: String, nodes :: [Node] }
+-- | テーブル処理
 outputTable :: Node -> [String]
 outputTable table = [t, h, d] ++ c ++ ["\n"]
     where
@@ -53,9 +52,9 @@ outputTable table = [t, h, d] ++ c ++ ["\n"]
 createTable :: String -> Node
 createTable n = Table { name = n, rows = [] }
 addRow :: Node -> [Row] -> Node
-addRow table rs = Table { name = name table, rows = rows table ++ rs}
+addRow table rs = Table { name = name table, rows = rs ++ rows table}
 
--- | 全体
+-- | 全体処理
 outputSheet :: Node -> [String]
 outputSheet sheet = h:concatMap outputTable c
     where
@@ -79,9 +78,10 @@ createSheet :: String -> [[String]] -> Node
 createSheet s src = rs
     where
         empty = Sheet { name = s, nodes = [] }
-        ts = map createTable [x | [x,_] <- src]
+        woHeader = drop 1 src
+        ts = map createTable [x | [x,_] <- woHeader]
         ss = foldr addTable empty ts
-        rs = foldr (\p -> addRows (fst p) [snd p]) ss [(x,createRow xs) | x:xs <- src]
+        rs = foldr (\p -> addRows (fst p) [snd p]) ss [(x,createRow xs) | x:xs <- woHeader]
 
 
 -- | CSVファイル構造定義
@@ -101,12 +101,12 @@ readFile' cp path = do
     hGetContents h
 
 -- | メイン処理
-load :: Either ParseError [[String]] -> [String]
-load = either (map messageString . errorMessages) (outputSheet . createSheet "test")
+load :: String -> Either ParseError [[String]] -> [String]
+load s = either (map messageString . errorMessages) (outputSheet . createSheet s)
 
 -- | テスト結果CSVから表示用markdownを生成
 main :: IO ()
 main = do
-    path <- getArgs
-    src <- readFile' "UTF-8" (head path)
-    mapM_ putStrLn (load $ parseCsv src)
+    path:_ <- getArgs
+    src <- readFile' "UTF-8" path
+    mapM_ putStrLn (load path $ parseCsv src)
