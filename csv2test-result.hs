@@ -19,7 +19,8 @@ instance Show TestResult where
     show Yet = "未実施"
     show Pending = "保留"
 instance Read TestResult where
-    readsPrec _ s = readResult s
+    readsPrec _ = readResult
+-- | 結果文字列読み込み
 readResult :: String -> [(TestResult, String)]
 readResult "OK" = [(OK, "OK" )]
 readResult "NG" = [(NG, "NG")]
