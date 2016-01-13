@@ -101,7 +101,7 @@ readFile' cp path = do
     h <- openFile path ReadMode
     enc <- mkTextEncoding cp
     hSetEncoding h enc
-    hGetContents h
+    return hGetContents h
 
 -- | メイン処理
 load :: String -> Either ParseError [[String]] -> [String]
