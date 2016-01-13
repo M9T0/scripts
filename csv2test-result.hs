@@ -5,6 +5,7 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 import System.Environment
+import System.FilePath
 import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding)
 import Text.Parsec
 import Text.Parsec.Error
@@ -27,11 +28,12 @@ readResult "未実施" = [(Yet, "未実施" )]
 readResult _ = [(Yet, "")]
 
 -- | 行
-data Row = Row { subject :: String, result :: TestResult, remark :: String }
+data Row = Row { subject :: String, content :: String, result :: TestResult, remark :: String }
 instance Show Row where
-    show row = "|" ++ s ++ "|" ++ r ++ "|"  ++ m ++ "|"
+    show row = "|" ++ s ++ "|" ++ c ++ "|" ++ r ++ "|"  ++ m ++ "|"
         where
             s = subject row
+            c = content row
             r = show $ result row
             m = remark row
 -- | 行格納ノード
@@ -40,8 +42,8 @@ instance Show Node where
     show (Table n r) = unlines ([t, h, d] ++ c ++ ["\n"])
         where
             t = "## " ++ n ++ "\n"
-            h = "|項目|結果|備考|"
-            d = "|----|----|----|"
+            h = "|項目|内容|結果|備考|"
+            d = "|----|----|----|----|"
             c = map show r
     show (Sheet n c) = h ++ concatMap show c
         where
@@ -49,7 +51,7 @@ instance Show Node where
 
 -- | 行処理
 createRow :: [String] -> Row
-createRow xs = Row { subject = head xs, result = read (xs !! 1), remark = xs !! 2 }
+createRow xs = Row { subject = head xs, content = xs !! 1, result = read (xs !! 2), remark = xs !! 3 }
 
 -- | テーブル処理
 createTable :: String -> Node
@@ -67,7 +69,7 @@ addTable t s = Sheet { name = name s, nodes = n }
                 addRow (head [c | c <- nodes s, name c == name t]) (rows t):[c | c <- nodes s, name c /= name t]
             else
                 t:nodes s
-                
+
 -- | 行追加
 addRows :: String -> [Row] -> Node -> Node
 addRows n rs = addTable t
@@ -109,4 +111,4 @@ main :: IO ()
 main = do
     path:_ <- getArgs
     src <- readFile' "UTF-8" path
-    mapM_ putStrLn (load path $ parseCsv src)
+    mapM_ putStrLn (load (dropExtension path) $ parseCsv src)
