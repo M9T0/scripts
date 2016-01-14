@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+import Control.Monad
 import System.Environment
 import System.FilePath
 import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding)
@@ -97,11 +98,7 @@ parseCsv = parse csvStruct "* ParseError *"
 
 -- | ファイル読み込み処理
 readFile' :: String -> String -> IO String
-readFile' cp path = do
-    h <- openFile path ReadMode
-    enc <- mkTextEncoding cp
-    hSetEncoding h enc
-    hGetContents h
+readFile' cp path = join $ hGetContents <$> openFile path ReadMode <* (flip hSetEncoding <$> mkTextEncoding cp)
 
 -- | メイン処理
 load :: String -> Either ParseError [[String]] -> [String]
