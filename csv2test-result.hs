@@ -109,4 +109,4 @@ main :: IO ()
 main = do
     path:_ <- getArgs
     src <- readFile' "UTF-8" path
-    mapM_ putStrLn (load (dropExtension path) $ parseCsv src)
+    mapM_ putStrLn (load (dropExtension path) (parseCsv src))

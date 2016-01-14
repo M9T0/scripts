@@ -4,27 +4,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+import Control.Monad
 import System.IO
 import System.Environment
 
 -- | 各行を連結
-join :: [String] -> [String] -> [String]
-join (x:xs) (y:ys) =
-    concat [x,",",y]:join xs ys
-join (_:_) [] =
+joinCsv :: [String] -> [String] -> [String]
+joinCsv (x:xs) (y:ys) =
+    concat [x,",",y]:joinCsv xs ys
+joinCsv (_:_) [] =
     [""]
-join [] (_:_) =
+joinCsv [] (_:_) =
     [""]
-join [] [] =
+joinCsv [] [] =
     [""]
 
 -- | 文字コード指定読み込み
 readFile' :: String -> String -> IO String
-readFile' cp path = do
-    h <- openFile path ReadMode
-    enc <- mkTextEncoding cp
-    hSetEncoding h enc
-    hGetContents h
+readFile' cp path = join $ hGetContents <$> openFile path ReadMode <* (flip hSetEncoding <$> mkTextEncoding cp)
 
 -- | CSVファイルをJOINする
 main :: IO ()
@@ -32,4 +29,4 @@ main = do
     [left, right] <- getArgs
     leftContent <- readFile' "UTF-8" left
     rightContent <- readFile' "UTF-8" right
-    putStr $ unlines $ join (lines leftContent) (lines rightContent)
+    putStr $ unlines $ joinCsv (lines leftContent) (lines rightContent)

@@ -4,8 +4,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+import Control.Monad (join)
 import System.Environment
-import System.IO (IOMode (..), hGetContents, hPutStr, hFlush, hSetEncoding, openFile, hClose, mkTextEncoding)
+import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding)
 
 -- | 行単位の処理
 csv2mdtable' :: String -> String
@@ -25,15 +26,8 @@ csv2mdtable s =
 
 -- ファイル読み込み処理
 readFile' :: String -> String -> IO String
-readFile' cp path = do
-    h <- openFile path ReadMode
-    enc <- mkTextEncoding cp
-    hSetEncoding h enc
-    hGetContents h
+readFile' cp path = join $ hGetContents <$> openFile path ReadMode <* (flip hSetEncoding <$> mkTextEncoding cp)
 
 -- | CSVファイルからmarkdown形式のテーブルを出力する
 main :: IO ()
-main = do
-    [path] <- getArgs
-    content <- readFile' "UTF-8" path
-    putStr $ unlines $ csv2mdtable $ lines content
+main = getArgs >>= (readFile' "UTF-8" . head) >>= putStr . unlines . csv2mdtable . lines
