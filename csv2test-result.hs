@@ -4,7 +4,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
-import Control.Monad
 import System.Environment
 import System.FilePath
 import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding)
@@ -15,18 +14,18 @@ import Text.Parsec.Error
 data TestResult = OK | NG | Yet | Pending
     deriving (Enum, Eq, Ord)
 instance Show TestResult where
-    show OK = "OK"
-    show NG = "NG"
-    show Yet = "未実施"
-    show Pending = "保留"
+    show OK = "<span class=\"label label-success\">OK</span>"
+    show NG = "<span class=\"label label-danger\">NG</span>"
+    show Yet = "<span class=\"label label-default\">未実施</span>"
+    show Pending = "<span class=\"label label-default\">保留</span>"
 instance Read TestResult where
     readsPrec _ = readResult
 -- | 結果文字列読み込み
 readResult :: String -> [(TestResult, String)]
-readResult "OK" = [(OK, "OK" )]
-readResult "NG" = [(NG, "NG")]
-readResult "保留" = [(Pending, "保留")]
-readResult "未実施" = [(Yet, "未実施" )]
+readResult "OK" = [(OK, "" )]
+readResult "NG" = [(NG, "")]
+readResult "保留" = [(Pending, "")]
+readResult "未実施" = [(Yet, "" )]
 readResult _ = [(Yet, "")]
 
 -- | 行
@@ -98,7 +97,11 @@ parseCsv = parse csvStruct "* ParseError *"
 
 -- | ファイル読み込み処理
 readFile' :: String -> String -> IO String
-readFile' cp path = join $ hGetContents <$> openFile path ReadMode <* (flip hSetEncoding <$> mkTextEncoding cp)
+readFile' cp path = do
+    enc <- mkTextEncoding cp
+    h <- openFile path ReadMode
+    _ <- hSetEncoding h enc
+    hGetContents h
 
 -- | メイン処理
 load :: String -> Either ParseError [[String]] -> [String]
