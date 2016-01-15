@@ -4,9 +4,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
+import Control.Monad
 import System.Environment
 import System.FilePath
-import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding, hPutStr, withFile)
+import System.IO (TextEncoding, IOMode (..), utf8, hGetContents, hSetEncoding, openFile, mkTextEncoding, hPutStr, withFile)
 import Text.Parsec
 import Text.Parsec.Error
 
@@ -85,7 +86,7 @@ createSheet s src = rs
         woHeader = drop 1 src
         ts = map createTable [x | [x,_] <- woHeader]
         ss = foldr addTable empty ts
-        rs = foldr (\p -> addRows (fst p) [snd p]) ss [(x,createRow xs) | x:xs <- woHeader]
+        rs = foldr (\(a, b) -> addRows a [b]) ss [(x,createRow xs) | x:xs <- woHeader]
 
 -- | CSVファイル構造定義
 csvStruct = endBy line eol
@@ -99,9 +100,7 @@ parseCsv = parse csvStruct "* ParseError *"
 readFile' :: FilePath -> String -> IO String
 readFile' path cp = do
     h <- openFile path ReadMode
-    enc <- mkTextEncoding cp
-    hSetEncoding h enc
-    hGetContents h
+    hSetEncoding h <$> mkTextEncoding cp >> hGetContents h
 
 writeFile' :: FilePath -> String -> String -> IO ()
 writeFile' path str cp =
