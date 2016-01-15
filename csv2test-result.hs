@@ -6,7 +6,7 @@
 
 import System.Environment
 import System.FilePath
-import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding)
+import System.IO (IOMode (..), hGetContents, hSetEncoding, openFile, mkTextEncoding, hPutStr, withFile)
 import Text.Parsec
 import Text.Parsec.Error
 
@@ -96,12 +96,16 @@ parseCsv :: String -> Either ParseError [[String]]
 parseCsv = parse csvStruct "* ParseError *"
 
 -- | ファイル読み込み処理
-readFile' :: String -> String -> IO String
-readFile' cp path = do
-    enc <- mkTextEncoding cp
+readFile' :: FilePath -> String -> IO String
+readFile' path cp = do
     h <- openFile path ReadMode
-    _ <- hSetEncoding h enc
+    enc <- mkTextEncoding cp
+    hSetEncoding h enc
     hGetContents h
+
+writeFile' :: FilePath -> String -> String -> IO ()
+writeFile' path str cp =
+    withFile path WriteMode $ \h -> mkTextEncoding cp >>= hSetEncoding h >> hPutStr h str
 
 -- | メイン処理
 load :: String -> Either ParseError [[String]] -> [String]
@@ -111,5 +115,5 @@ load s = either (map messageString . errorMessages) (lines . show . createSheet 
 main :: IO ()
 main = do
     path:_ <- getArgs
-    src <- readFile' "UTF-8" path
-    mapM_ putStrLn (load (dropExtension path) (parseCsv src))
+    src <- readFile' path "CP932"
+    writeFile' (dropExtension path ++ ".md") (unlines (load (dropExtension path) (parseCsv src))) "UTF-8"
