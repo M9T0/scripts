@@ -17,7 +17,7 @@ data TestResult = OK | NG | Yet | Pending
 instance Show TestResult where
     show OK = "<span class=\"label label-success\">OK</span>"
     show NG = "<span class=\"label label-danger\">NG</span>"
-    show Yet = "<span class=\"label label-default\">未実施</span>"
+    show Yet = "<span class=\"label label-warning\">未実施</span>"
     show Pending = "<span class=\"label label-default\">保留</span>"
 instance Read TestResult where
     readsPrec _ = readResult
