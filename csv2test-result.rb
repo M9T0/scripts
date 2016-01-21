@@ -1,41 +1,63 @@
+# encoding: utf-8
+
 require 'set'
 require 'csv'
+require 'tempfile'
 
+sourcepath = ARGV[0]
 funcs = Hash.new
-index = 0
+index = 1
 
-def toTagString(result)
-    case str
+def toTagString(arg)
+    str = "未実施"
+    cls = "warning"
+    case arg.encode("UTF-8")
     when "OK" then
-        '<span class="label label-success">OK</span>'
+        str = "OK"
+        cls = "success"
     when "NG" then
-        '<span class="label label-danger">NG</span>'
+        str = "NG"
+        cls = "danger"
     when "保留" then
-        '<span class="label label-default">保留</span>'
+        str = "保留"
+        cls = "default"
     when "未実施" then
-        '<span class="label label-warning">未実施</span>'
+        str = "未実施"
+        cls = "warning"
+    end
+    "<span class=\"label label-#{cls}\">#{str}</span>"
+end
+
+open(sourcepath, "rb:Shift_JIS:UTF-8", undef: :replace) do |f|
+    CSV.new(f, headers: :first_row).each do |row|
+        mkdRow = { :index => index,
+             :subject => row[1],
+             :content => row[2],
+             :result => row[3].to_s(),
+             :remarks => row[4] }
+        if !(funcs.key? row[0]) then
+            funcs.store(row[0], [mkdRow])
+        else
+            funcs[row[0]].push(mkdRow)
+        end
+        index = index + 1
     end
 end
 
-CSV.table(ARGV[0], encoding: "Shift_JIS:UTF-8", header_converters: nil).each do |row|
-#CSV.foreach(ARGV[0], headers: :first_row, endoding: :) do |row|
-    mkdRow = { :index => index, :subject => row[1], :content => row[2], :result => row[3], :remarks => row[4] }
-    if !(funcs.key? row[0]) then
-        funcs.store(row[0], [mkdRow])
-    else
-        funcs[row[0]].push(mkdRow)
-    end
-    index = index + 1
-end
-
-puts '# ' + File.basename(ARGV[0], ".csv")
+temp = Tempfile::new("temp", "./")
+temp.puts "# " + File.basename(sourcepath, ".*").encode("UTF-8") + "\n"
 funcs.each do |k, v|
-    puts '## ' + k
-    puts ''
-    puts "|番号|機能|確認内容|結果|備考|".encode("cp932")
-    puts "|---:|----|--------|----|----|".encode("cp932")
+    temp.puts "## " + k.to_s() + "\n"
+    temp.puts "\n"
+    temp.puts "|番号|機能|確認内容|結果|備考|\n"
+    temp.puts "|---:|----|--------|----|----|\n"
     v.each do |s|
-        puts "|#{s[:index]}|#{s[:subject]}|#{s[:content]}|#{toTagString(s[:result])}|#{s[:remarks]}|".encode("cp932")
+        temp.puts "|#{s[:index]}|#{s[:subject]}|#{s[:content]}|#{toTagString(s[:result])}|#{s[:remarks]}|\n"
     end
-    puts ''
+    temp.puts "\n"
 end
+
+system("pandoc", "--table-of-contents", "--output=" + File.basename(sourcepath, ".*") + ".html",
+    "--to=html", "--from=markdown", "--highlight-style=tango",
+    "--css=http://jasonm23.github.com/markdown-css-themes/markdown7.css",
+    "--css=https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css", "-s", temp.path())
