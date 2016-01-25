@@ -60,7 +60,14 @@ ARGV.map do |sourcepath|
 end
 temp.fsync()
 
-system("pandoc", "--table-of-contents", "--output=" + File.basename(ARGV[0], ".*") + ".html",
-       "--to=html5", "--from=markdown", "--highlight-style=tango", "--smart", "--standalone", "--self-contained",
+system("pandoc",
+       "--table-of-contents",
+       "--output=" + File.basename(ARGV[0], ".*") + ".html",
+       "--to=html5",
+       "--from=markdown",
+       "--highlight-style=tango",
+       "--smart",
+       "--standalone",
+       "--self-contained",
        "--css=http://jasonm23.github.com/markdown-css-themes/markdown7.css",
        "--css=https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css", temp.path)
