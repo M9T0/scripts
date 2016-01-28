@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 # encoding: utf-8
 
 require 'set'
@@ -27,6 +28,7 @@ end
 #temp = File.new("temp.md", "w+")
 temp = Tempfile.new("temp", "./")
 index = 1
+count = 0
 
 ARGV.map do |sourcepath|
   funcs = Hash.new
@@ -43,6 +45,9 @@ ARGV.map do |sourcepath|
         funcs[row[0]].push(mkdRow)
       end
       index = index + 1
+      if mkdRow[:result] == "OK" then
+        count = count + 1
+      end
     end
   end
 
@@ -51,7 +56,7 @@ ARGV.map do |sourcepath|
     temp.puts "## " + k.to_s() + "\n"
     temp.puts "\n"
     temp.puts "|番号|機能|確認内容|結果|備考|\n"
-    temp.puts "|---:|----|--------|----|----|\n"
+    temp.puts "|---:|----|--------|:--:|----|\n"
     v.each do |s|
       temp.puts "|#{s[:index]}|#{s[:subject]}|#{s[:content]}|#{toTagString(s[:result])}|#{s[:remarks]}|\n"
     end
@@ -71,3 +76,7 @@ system("pandoc",
        "--self-contained",
        "--css=http://jasonm23.github.com/markdown-css-themes/markdown7.css",
        "--css=https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css", temp.path)
+
+p "処理行数:#{index}レコード".encode("cp932")
+r = Rational(count, index)
+p "進捗: #{r} #{(r.to_f * 100).floor}%完了".encode("cp932")
